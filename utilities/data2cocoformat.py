@@ -29,6 +29,10 @@ def calculate_bbox(x_coords, y_coords, image_width, image_height):
     max_y = min(image_height, max(y_coords) + 20)
 
 
+    # Annotations lying completely outside the image would give a negative width/height
+    if max_x <= min_x or max_y <= min_y:
+        return [0, 0, 0, 0], 0
+
     width = max_x - min_x
     height = max_y - min_y
     area = (width**2 + height**2) / 2
@@ -216,7 +220,8 @@ def process_data(image_files, json_files, output_json_path, base_folder, log_fil
         with Image.open(img_file) as img:
             width, height = img.size
             img_dict = {
-                'file_name': img_file,
+                # MMPose joins data_root + data_prefix + file_name, so store the basename only
+                'file_name': os.path.basename(img_file),
                 'height': height,
                 'width': width,
                 'id': IMG_ID

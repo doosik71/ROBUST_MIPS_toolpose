@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 from PIL import Image, ImageDraw
@@ -59,14 +60,14 @@ def save_image_with_annotations(image_path, annotations, output_image_path):
                 draw.line([(x_start, y_start), (x_end, y_end)], fill=color, width=3)
 
         # Draw bounding box with green border
-        if len(bbox) == 4 and any(bbox[2:]):
+        if len(bbox) == 4 and bbox[2] > 0 and bbox[3] > 0:
             x1, y1, width, height = map(int, bbox)
             draw.rectangle([x1, y1, x1 + width, y1 + height], outline=BBOX_COLOR, width=3)
 
     image_with_annotations.save(output_image_path)
     print(f"Saved image with annotations to {output_image_path}")
 
-def process_images(json_file_path, output_folder):
+def process_images(json_file_path, output_folder, img_folder, skip_existing=False):
     """Process images and annotations from the COCO JSON file."""
     os.makedirs(output_folder, exist_ok=True)
     
@@ -83,18 +84,27 @@ def process_images(json_file_path, output_folder):
         annotations_by_image[image_id].append(annotation)
 
     # Process each image
+    skipped = 0
     for image in images:
         image_id = image['id']
-        image_path = image['file_name']
+        # file_name holds the basename only; images live in img_folder
+        image_path = os.path.join(img_folder, image['file_name'])
         file_name = os.path.basename(image_path)
         output_image_path = os.path.join(output_folder, file_name)
+
+        if skip_existing and os.path.exists(output_image_path):
+            skipped += 1
+            continue
 
         if image_id in annotations_by_image:
             save_image_with_annotations(image_path, annotations_by_image[image_id], output_image_path)
         else:
             print(f"No annotations found for image {image_path}")
 
-def process_all_datasets():
+    if skipped:
+        print(f"Skipped {skipped} existing images in {output_folder}")
+
+def process_all_datasets(skip_existing=False):
     """Process tra, val, and test datasets."""
     datasets = {
         'tra': 'dataset/cocoformat_train.json',
@@ -104,15 +114,25 @@ def process_all_datasets():
 
     output_folders = {
         'tra': 'dataset/check_trainImg',
-        'val': '/dataset/check_valImg',
+        'val': 'dataset/check_valImg',
         'test': 'dataset/check_testImg'
+    }
+
+    img_folders = {
+        'tra': 'dataset/training/img',
+        'val': 'dataset/val/img',
+        'test': 'dataset/testing/img'
     }
 
     for dataset_type, json_file_path in datasets.items():
         output_folder = output_folders[dataset_type]
         print(f"Processing {dataset_type} dataset...")
-        process_images(json_file_path, output_folder)
+        process_images(json_file_path, output_folder, img_folders[dataset_type], skip_existing)
         print(f"Finished processing {dataset_type} dataset")
 
 if __name__ == "__main__":
-    process_all_datasets()
+    parser = argparse.ArgumentParser(description='Visualize COCO-format GT annotations.')
+    parser.add_argument('--skip-existing', action='store_true',
+                        help='skip images whose output file already exists')
+    args = parser.parse_args()
+    process_all_datasets(skip_existing=args.skip_existing)

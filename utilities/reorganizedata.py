@@ -24,7 +24,9 @@ def copy_and_rename_files(data_root_list, img_output_folder, json_output_folder,
             folder_path = os.path.join(data_root, folder_name)
             
             for file_type in file_types:
-                search_pattern = f"**/raw{file_type}"
+                # Images are named raw.png, annotations are named toolposes.json
+                source_name = 'raw.png' if file_type == '.png' else 'toolposes.json'
+                search_pattern = f"**/{source_name}"
                 file_paths = glob.glob(os.path.join(folder_path, search_pattern), recursive=True)
 
                 for file_path in file_paths:

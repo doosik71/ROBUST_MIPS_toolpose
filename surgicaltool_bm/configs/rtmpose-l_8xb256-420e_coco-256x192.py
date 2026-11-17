@@ -216,8 +216,8 @@ train_dataloader = dict(
         metainfo=dataset_info,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='cocoformat_train.json.json',
-        data_prefix=dict(img='traing/img/'),
+        ann_file='cocoformat_train.json',
+        data_prefix=dict(img='training/img/'),
         pipeline=train_pipeline,
     ))
 val_dataloader = dict(
